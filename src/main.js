@@ -20,28 +20,27 @@ let totalPages;
 
 formEl.addEventListener('submit', async e => {
   e.preventDefault();
-  showLoader();
-  hideLoadMoreButton();
   clearGallery();
 
-  query = e.target.elements.search.value;
+  hideLoadMoreButton();
+
+  query = e.target.elements.search.value.trim();
   currentPage = 1;
+  totalPages = 0;
 
   if (!query) {
-    hideLoadMoreButton();
     iziToast.info({
-      message: 'Please enter value',
+      message: 'Please enter a query',
       position: 'topRight',
       color: 'yellow',
     });
-    hideLoader();
     return;
   }
+  showLoader();
   try {
     const res = await getImagesByQuery(query, currentPage);
 
     if (res.hits.length === 0) {
-      hideLoadMoreButton();
       iziToast.error({
         message:
           'Sorry, there are no images matching your search query. Please try again!',
@@ -52,23 +51,26 @@ formEl.addEventListener('submit', async e => {
     } else {
       createGallery(res.hits);
       totalPages = Math.ceil(res.totalHits / pageSize);
-      scroll();
+      checkBtnStatus();
     }
   } catch (err) {
-    console.log(err);
+    iziToast.error({
+      message: err.message,
+      position: 'topRight',
+    });
   } finally {
     hideLoader();
   }
-
-  checkBtnStatus();
-
-  e.target.reset();
 });
 
 loadBtn.addEventListener('click', async () => {
-  hideLoadMoreButton();
+  if (currentPage >= totalPages) {
+    hideLoadMoreButton();
+    return;
+  }
   currentPage += 1;
   showLoader();
+  hideLoadMoreButton();
   try {
     const res = await getImagesByQuery(query, currentPage);
     createGallery(res.hits);
@@ -76,7 +78,10 @@ loadBtn.addEventListener('click', async () => {
 
     scroll();
   } catch (err) {
-    console.log(err);
+    iziToast.error({
+      message: err.message,
+      position: 'topRight',
+    });
   } finally {
     hideLoader();
   }
